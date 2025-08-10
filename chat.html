@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chat with Voice</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .chat-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 800px;
+            height: 80vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .chat-header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .chat-header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .status-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 12px;
+            height: 12px;
+            background: #4CAF50;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .status-indicator.thinking {
+            background: #ff9800;
+        }
+
+        .status-indicator.speaking {
+            background: #2196F3;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 15px 20px;
+            border-radius: 20px;
+            position: relative;
+            word-wrap: break-word;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+
+        .message.bot .message-content {
+            background: white;
+            color: #333;
+            border: 1px solid #e0e0e0;
+            border-bottom-left-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            margin: 0 10px;
+            flex-shrink: 0;
+        }
+
+        .message.user .message-avatar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            order: 2;
+        }
+
+        .message.bot .message-avatar {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+        }
+
+        .chat-input-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .chat-input-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .chat-input {
+            flex: 1;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            padding: 12px 20px;
+            font-size: 16px;
+            resize: none;
+            max-height: 120px;
+            min-height: 50px;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .chat-input:focus {
+            border-color: #4CAF50;
+        }
+
+        .send-button {
+            width: 50px;
+            height: 50px;
+            border: none;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .send-button:hover:not(:disabled) {
+            transform: scale(1.1);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        .send-button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .audio-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            justify-content: center;
+        }
+
+        .audio-button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .play-button {
+            background: #2196F3;
+            color: white;
+        }
+
+        .play-button:hover:not(:disabled) {
+            background: #1976D2;
+        }
+
+        .stop-button {
+            background: #f44336;
+            color: white;
+        }
+
+        .stop-button:hover:not(:disabled) {
+            background: #d32f2f;
+        }
+
+        .audio-button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .typing-indicator {
+            display: none;
+            padding: 15px 20px;
+            background: white;
+            border-radius: 20px;
+            border-bottom-left-radius: 5px;
+            margin-bottom: 20px;
+            border: 1px solid #e0e0e0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            max-width: 70%;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #999;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+                opacity: 0.5;
+            }
+            30% {
+                transform: translateY(-10px);
+                opacity: 1;
+            }
+        }
+
+        .audio-status {
+            text-align: center;
+            padding: 10px;
+            font-size: 12px;
+            color: #666;
+            background: #f0f0f0;
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+
+        .audio-status.generating {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .audio-status.ready {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        .audio-status.playing {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        /* Scrollbar styling */
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .chat-container {
+                height: 100vh;
+                border-radius: 0;
+                max-width: 100%;
+            }
+
+            .message-content {
+                max-width: 85%;
+            }
+
+            .chat-header h1 {
+                font-size: 20px;
+            }
+
+            .chat-input-wrapper {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="status-indicator" id="statusIndicator"></div>
+            <h1>🤖 AI Assistant with Voice</h1>
+            <p>Chat with AI and hear responses in natural voice</p>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <div class="message bot">
+                <div class="message-avatar">🤖</div>
+                <div class="message-content">
+                    Hello! I'm your AI assistant. Ask me anything and I'll respond with both text and voice. How can I help you today?
+                </div>
+            </div>
+        </div>
+
+        <div class="typing-indicator" id="typingIndicator">
+            <div class="message-avatar">🤖</div>
+            <div class="typing-dots">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+        </div>
+
+        <div class="chat-input-container">
+            <div class="chat-input-wrapper">
+                <textarea 
+                    id="chatInput" 
+                    class="chat-input" 
+                    placeholder="Type your message here..."
+                    rows="1"
+                ></textarea>
+                <button id="sendButton" class="send-button">
+                    <span>➤</span>
+                </button>
+            </div>
+            
+            <div class="audio-controls">
+                <button id="playButton" class="audio-button play-button" disabled>
+                    ▶️ Play Last Response
+                </button>
+                <button id="stopButton" class="audio-button stop-button" disabled>
+                    ⏹️ Stop Audio
+                </button>
+            </div>
+            
+            <div id="audioStatus" class="audio-status">Ready to chat</div>
+        </div>
+    </div>
+
+    <script>
+        let audioContext;
+        let currentAudioBuffer;
+        let currentSource;
+        let isPlaying = false;
+        let conversationHistory = [];
+
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const sendButton = document.getElementById('sendButton');
+        const playButton = document.getElementById('playButton');
+        const stopButton = document.getElementById('stopButton');
+        const typingIndicator = document.getElementById('typingIndicator');
+        const statusIndicator = document.getElementById('statusIndicator');
+        const audioStatus = document.getElementById('audioStatus');
+
+        // Initialize Web Audio API
+        async function initAudioContext() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioContext.state === 'suspended') {
+                await audioContext.resume();
+            }
+        }
+
+        function updateAudioStatus(message, className = '') {
+            audioStatus.textContent = message;
+            audioStatus.className = `audio-status ${className}`;
+        }
+
+        function updateStatusIndicator(status) {
+            statusIndicator.className = `status-indicator ${status}`;
+        }
+
+        function addMessage(content, isUser = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
+            
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = isUser ? '👤' : '🤖';
+            
+            const messageContent = document.createElement('div');
+            messageContent.className = 'message-content';
+            messageContent.textContent = content;
+            
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(messageContent);
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            typingIndicator.style.display = 'flex';
+            chatMessages.appendChild(typingIndicator);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function hideTypingIndicator() {
+            typingIndicator.style.display = 'none';
+            if (typingIndicator.parentNode) {
+                typingIndicator.parentNode.removeChild(typingIndicator);
+            }
+        }
+
+        function autoResizeTextarea() {
+            chatInput.style.height = 'auto';
+            chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
+        }
+
+        async function processAudioStream(response) {
+            try {
+                await initAudioContext();
+                
+                updateAudioStatus('Processing audio stream...', 'generating');
+                updateStatusIndicator('speaking');
+
+                // Read the audio stream
+                const reader = response.body.getReader();
+                const audioChunks = [];
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    audioChunks.push(value);
+                }
+
+                // Combine all chunks
+                const totalBytes = audioChunks.reduce((sum, chunk) => sum + chunk.length, 0);
+                const combinedData = new Uint8Array(totalBytes);
+                let offset = 0;
+                
+                for (const chunk of audioChunks) {
+                    combinedData.set(chunk, offset);
+                    offset += chunk.length;
+                }
+
+                // Convert PCM to Float32Array (assuming 16-bit mono at 22050 Hz)
+                const samples = new Int16Array(combinedData.buffer);
+                const floatSamples = new Float32Array(samples.length);
+                
+                for (let i = 0; i < samples.length; i++) {
+                    floatSamples[i] = samples[i] / 32768.0;
+                }
+
+                // Create AudioBuffer (assuming mono 22050 Hz - adjust if needed)
+                const sampleRate = 22050; // Default for Piper TTS
+                const channels = 1;
+                
+                currentAudioBuffer = audioContext.createBuffer(channels, floatSamples.length, sampleRate);
+                currentAudioBuffer.copyToChannel(floatSamples, 0);
+
+                const duration = currentAudioBuffer.duration.toFixed(1);
+                updateAudioStatus(`Audio ready (${duration}s) - Click play to hear`, 'ready');
+                updateStatusIndicator('');
+                
+                playButton.disabled = false;
+                
+                // Auto-play the response
+                setTimeout(() => {
+                    if (!isPlaying) {
+                        playAudio();
+                    }
+                }, 500);
+
+            } catch (error) {
+                console.error('Error processing audio:', error);
+                updateAudioStatus('Audio processing failed', '');
+                updateStatusIndicator('');
+            }
+        }
+
+        async function playAudio() {
+            if (!currentAudioBuffer || isPlaying) return;
+
+            try {
+                await initAudioContext();
+                
+                currentSource = audioContext.createBufferSource();
+                currentSource.buffer = currentAudioBuffer;
+                currentSource.connect(audioContext.destination);
+                
+                currentSource.onended = () => {
+                    isPlaying = false;
+                    playButton.disabled = false;
+                    stopButton.disabled = true;
+                    updateAudioStatus('Audio finished', 'ready');
+                };
+                
+                currentSource.start();
+                isPlaying = true;
+                playButton.disabled = true;
+                stopButton.disabled = false;
+                updateAudioStatus('Playing audio...', 'playing');
+                
+            } catch (error) {
+                console.error('Error playing audio:', error);
+                updateAudioStatus('Playback error', '');
+            }
+        }
+
+        function stopAudio() {
+            if (currentSource && isPlaying) {
+                currentSource.stop();
+                currentSource = null;
+                isPlaying = false;
+                playButton.disabled = false;
+                stopButton.disabled = true;
+                updateAudioStatus('Audio stopped', 'ready');
+            }
+        }
+
+        async function sendMessage() {
+            const message = chatInput.value.trim();
+            if (!message || sendButton.disabled) return;
+
+            // Add user message
+            addMessage(message, true);
+            conversationHistory.push({ role: 'user', content: message });
+            
+            // Clear input and disable controls
+            chatInput.value = '';
+            autoResizeTextarea();
+            sendButton.disabled = true;
+            playButton.disabled = true;
+            stopButton.disabled = true;
+            
+            // Show typing indicator
+            showTypingIndicator();
+            updateStatusIndicator('thinking');
+            updateAudioStatus('AI is thinking...', 'generating');
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        messages: conversationHistory
+                    })
+                });
+
+                hideTypingIndicator();
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                // The response should be text from the chat, but we get audio stream
+                // We need to extract the text somehow or handle it differently
+                // For now, let's add a placeholder message
+                const botMessage = "I've responded with voice. Click play to hear my answer!";
+                addMessage(botMessage, false);
+                conversationHistory.push({ role: 'assistant', content: botMessage });
+
+                // Process the audio stream
+                await processAudioStream(response);
+
+            } catch (error) {
+                hideTypingIndicator();
+                console.error('Error sending message:', error);
+                addMessage(`Sorry, I encountered an error: ${error.message}`, false);
+                updateAudioStatus('Error occurred', '');
+                updateStatusIndicator('');
+            } finally {
+                sendButton.disabled = false;
+            }
+        }
+
+        // Event listeners
+        sendButton.addEventListener('click', sendMessage);
+        playButton.addEventListener('click', playAudio);
+        stopButton.addEventListener('click', stopAudio);
+
+        chatInput.addEventListener('input', autoResizeTextarea);
+        chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Focus input on load
+        chatInput.focus();
+    </script>
+</body>
+</html>

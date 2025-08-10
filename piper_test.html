@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piper TTS Streaming Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .input-section {
+            margin-bottom: 30px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+        
+        textarea:focus {
+            border-color: #4CAF50;
+            outline: none;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        #generateBtn {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        #generateBtn:hover:not(:disabled) {
+            background-color: #45a049;
+        }
+        
+        #generateBtn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        #playBtn {
+            background-color: #2196F3;
+            color: white;
+        }
+        
+        #playBtn:hover:not(:disabled) {
+            background-color: #1976D2;
+        }
+        
+        #playBtn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        #stopBtn {
+            background-color: #f44336;
+            color: white;
+        }
+        
+        #stopBtn:hover:not(:disabled) {
+            background-color: #d32f2f;
+        }
+        
+        #stopBtn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        
+        .status.idle {
+            background-color: #e8f5e8;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+        }
+        
+        .status.loading {
+            background-color: #fff3e0;
+            color: #f57c00;
+            border: 1px solid #ffcc02;
+        }
+        
+        .status.ready {
+            background-color: #e3f2fd;
+            color: #1976d2;
+            border: 1px solid #90caf9;
+        }
+        
+        .status.playing {
+            background-color: #f3e5f5;
+            color: #7b1fa2;
+            border: 1px solid #ce93d8;
+        }
+        
+        .status.error {
+            background-color: #ffebee;
+            color: #c62828;
+            border: 1px solid #ef9a9a;
+        }
+        
+        .audio-info {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background-color: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background-color: #4CAF50;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .examples {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        
+        .example-text {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        
+        .example-text:hover {
+            background-color: #e9ecef;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 Piper TTS Streaming Test</h1>
+        
+        <div class="input-section">
+            <label for="textInput">Enter text to synthesize:</label>
+            <textarea 
+                id="textInput" 
+                placeholder="Type or paste your text here... Try something like: 'Hello! This is a test of the Piper text-to-speech system. How does it sound?'"
+            >Hello! This is a test of the Piper text-to-speech streaming system. The audio should play smoothly as it's being generated.</textarea>
+        </div>
+        
+        <div class="controls">
+            <button id="generateBtn">🎵 Generate & Stream Audio</button>
+            <button id="playBtn" disabled>▶️ Play Audio</button>
+            <button id="stopBtn" disabled>⏹️ Stop</button>
+        </div>
+        
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        
+        <div id="status" class="status idle">Ready to generate audio</div>
+        
+        <div id="audioInfo" class="audio-info" style="display: none;">
+            <strong>Audio Properties:</strong><br>
+            Sample Rate: <span id="sampleRate">-</span> Hz<br>
+            Channels: <span id="channels">-</span><br>
+            Format: <span id="format">-</span><br>
+            Duration: <span id="duration">-</span> seconds
+        </div>
+        
+        <div class="examples">
+            <h3>Example Texts (click to use):</h3>
+            <div class="example-text" onclick="setExampleText(this)">
+                "The quick brown fox jumps over the lazy dog. This pangram contains every letter of the English alphabet."
+            </div>
+            <div class="example-text" onclick="setExampleText(this)">
+                "To be or not to be, that is the question. Whether 'tis nobler in the mind to suffer the slings and arrows of outrageous fortune."
+            </div>
+            <div class="example-text" onclick="setExampleText(this)">
+                "In a hole in the ground there lived a hobbit. Not a nasty, dirty, wet hole filled with the ends of worms and an oozy smell."
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let audioContext;
+        let audioBuffer;
+        let currentSource;
+        let isPlaying = false;
+        let audioChunks = [];
+
+        const textInput = document.getElementById('textInput');
+        const generateBtn = document.getElementById('generateBtn');
+        const playBtn = document.getElementById('playBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const status = document.getElementById('status');
+        const progressFill = document.getElementById('progressFill');
+        const audioInfo = document.getElementById('audioInfo');
+
+        // Initialize Web Audio API
+        async function initAudioContext() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioContext.state === 'suspended') {
+                await audioContext.resume();
+            }
+        }
+
+        function updateStatus(message, type = 'idle') {
+            status.textContent = message;
+            status.className = `status ${type}`;
+        }
+
+        function updateProgress(percent) {
+            progressFill.style.width = `${percent}%`;
+        }
+
+        function setExampleText(element) {
+            textInput.value = element.textContent.replace(/"/g, '');
+        }
+
+        async function generateAndStreamAudio() {
+            const text = textInput.value.trim();
+            if (!text) {
+                updateStatus('Please enter some text first', 'error');
+                return;
+            }
+
+            try {
+                await initAudioContext();
+                
+                generateBtn.disabled = true;
+                playBtn.disabled = true;
+                stopBtn.disabled = false;
+                audioChunks = [];
+                audioBuffer = null;
+                
+                updateStatus('Generating audio...', 'loading');
+                updateProgress(0);
+
+                const response = await fetch('/tts_stream', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text: text })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                // Parse audio format from Content-Type header
+                const contentType = response.headers.get('content-type');
+                const rateMatch = contentType.match(/rate=(\d+)/);
+                const channelsMatch = contentType.match(/channels=(\d+)/);
+                
+                const sampleRate = rateMatch ? parseInt(rateMatch[1]) : 22050;
+                const channels = channelsMatch ? parseInt(channelsMatch[1]) : 1;
+
+                // Update audio info display
+                document.getElementById('sampleRate').textContent = sampleRate;
+                document.getElementById('channels').textContent = channels;
+                document.getElementById('format').textContent = 'PCM 16-bit';
+                audioInfo.style.display = 'block';
+
+                updateStatus('Streaming audio data...', 'loading');
+
+                // Read the stream
+                const reader = response.body.getReader();
+                let receivedLength = 0;
+                const contentLength = response.headers.get('content-length');
+                const totalLength = contentLength ? parseInt(contentLength) : null;
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    
+                    if (done) break;
+                    
+                    audioChunks.push(value);
+                    receivedLength += value.length;
+                    
+                    if (totalLength) {
+                        updateProgress((receivedLength / totalLength) * 100);
+                    }
+                }
+
+                // Combine all chunks into a single Uint8Array
+                const totalBytes = audioChunks.reduce((sum, chunk) => sum + chunk.length, 0);
+                const combinedData = new Uint8Array(totalBytes);
+                let offset = 0;
+                
+                for (const chunk of audioChunks) {
+                    combinedData.set(chunk, offset);
+                    offset += chunk.length;
+                }
+
+                // Convert PCM bytes to Float32Array for Web Audio API
+                const samples = new Int16Array(combinedData.buffer);
+                const floatSamples = new Float32Array(samples.length);
+                
+                for (let i = 0; i < samples.length; i++) {
+                    floatSamples[i] = samples[i] / 32768.0; // Convert to -1.0 to 1.0 range
+                }
+
+                // Create AudioBuffer
+                audioBuffer = audioContext.createBuffer(channels, floatSamples.length / channels, sampleRate);
+                
+                if (channels === 1) {
+                    audioBuffer.copyToChannel(floatSamples, 0);
+                } else {
+                    // For stereo, deinterleave the samples
+                    const leftChannel = new Float32Array(floatSamples.length / 2);
+                    const rightChannel = new Float32Array(floatSamples.length / 2);
+                    
+                    for (let i = 0; i < floatSamples.length; i += 2) {
+                        leftChannel[i / 2] = floatSamples[i];
+                        rightChannel[i / 2] = floatSamples[i + 1];
+                    }
+                    
+                    audioBuffer.copyToChannel(leftChannel, 0);
+                    audioBuffer.copyToChannel(rightChannel, 1);
+                }
+
+                const duration = audioBuffer.duration.toFixed(2);
+                document.getElementById('duration').textContent = duration;
+
+                updateStatus(`Audio ready! Duration: ${duration}s`, 'ready');
+                updateProgress(100);
+                
+                generateBtn.disabled = false;
+                playBtn.disabled = false;
+                stopBtn.disabled = true;
+
+            } catch (error) {
+                console.error('Error generating audio:', error);
+                updateStatus(`Error: ${error.message}`, 'error');
+                generateBtn.disabled = false;
+                playBtn.disabled = true;
+                stopBtn.disabled = true;
+                updateProgress(0);
+            }
+        }
+
+        async function playAudio() {
+            if (!audioBuffer || isPlaying) return;
+
+            try {
+                await initAudioContext();
+                
+                currentSource = audioContext.createBufferSource();
+                currentSource.buffer = audioBuffer;
+                currentSource.connect(audioContext.destination);
+                
+                currentSource.onended = () => {
+                    isPlaying = false;
+                    playBtn.disabled = false;
+                    stopBtn.disabled = true;
+                    updateStatus('Playback finished', 'ready');
+                };
+                
+                currentSource.start();
+                isPlaying = true;
+                playBtn.disabled = true;
+                stopBtn.disabled = false;
+                updateStatus('Playing audio...', 'playing');
+                
+            } catch (error) {
+                console.error('Error playing audio:', error);
+                updateStatus(`Playback error: ${error.message}`, 'error');
+            }
+        }
+
+        function stopAudio() {
+            if (currentSource && isPlaying) {
+                currentSource.stop();
+                currentSource = null;
+                isPlaying = false;
+                playBtn.disabled = false;
+                stopBtn.disabled = true;
+                updateStatus('Playback stopped', 'ready');
+            }
+        }
+
+        // Event listeners
+        generateBtn.addEventListener('click', generateAndStreamAudio);
+        playBtn.addEventListener('click', playAudio);
+        stopBtn.addEventListener('click', stopAudio);
+
+        // Allow Enter to generate (with Ctrl/Cmd for new line)
+        textInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                generateAndStreamAudio();
+            }
+        });
+
+        // Focus the text input on load
+        textInput.focus();
+    </script>
+</body>
+</html>

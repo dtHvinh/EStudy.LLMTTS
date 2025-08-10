@@ -1,0 +1,1 @@
+VOICE_STREAM_END = "^#^"
