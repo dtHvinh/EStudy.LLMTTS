@@ -4,7 +4,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers.ai_conversation.endpoint import ai_convo_router
 from routers.websocket.endpoint import websocket_router
-from routers.websocket.endpoint_coqui import websocket_router_coqui
 from dotenv import load_dotenv
 
 load_dotenv(".env")
@@ -27,6 +26,5 @@ def start():
 
 
 app.include_router(websocket_router)
-app.include_router(websocket_router_coqui)
 
 app.mount("/api", start())

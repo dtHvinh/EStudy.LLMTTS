@@ -88,4 +88,14 @@ async def voicechat_endpoint(websocket: WebSocket, conversation_id: str):
             await websocket.send_text(const.VOICE_STREAM_END)
 
     except WebSocketDisconnect:
-        await manager.close_connection(conversation_id)
+        # Connection was closed by client, just remove from manager
+        # Don't try to close again as it's already closed
+        manager.remove_connection(conversation_id)
+    except Exception as e:
+        logging.error(f"Error in WebSocket endpoint: {e}")
+        # Only try to close if connection is still active
+        try:
+            await manager.close_connection(conversation_id)
+        except:
+            # If closing fails, just remove from manager
+            manager.remove_connection(conversation_id)
