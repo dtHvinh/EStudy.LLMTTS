@@ -1,0 +1,66 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+env/
+.pyenv/
+*venv*/
+
+# pipenv / poetry
+Pipfile.lock
+poetry.lock
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Distribution / packaging
+build/
+dist/
+.eggs/
+*.egg-info/
+
+# IDEs and editors
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+.env.*
+
+# Docker files
+Dockerfile
+docker-compose.yml
+
+# Tests, coverage
+htmlcov/
+.coverage
+.coverage.*
+.cache
+.pytest_cache/
+
+# Node modules if present
+node_modules/
+
+# Logs
+*.log
+logs/
+
+# Any local large model directory you use
+D:\dev\AI\Voices/
+
+# Optional: lock down local Windows path expansions
+# Exclude absolute paths that shouldn't be sent to Docker context
+
+# Keep repo metadata
+!.github/

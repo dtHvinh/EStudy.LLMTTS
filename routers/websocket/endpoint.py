@@ -7,14 +7,15 @@ import logging
 from managers.websocket_manager import manager
 import constants.symbol as const
 import os
+from dotenv import load_dotenv
 import http.client
 import json
 import ssl
 
 websocket_router = APIRouter()
 
-VOICE_PATH = r"D:\dev\AI\Voices\en_US-hfc_female-medium\en_US-hfc_female-medium.onnx"
-voice = PiperVoice.load(VOICE_PATH)
+
+voice = PiperVoice.load(r"voices\en_US-hfc_female-medium\en_US-hfc_female-medium.onnx")
 
 
 def get_conversation_context(conversation_id: str) -> str:
