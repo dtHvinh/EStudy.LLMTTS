@@ -40,6 +40,7 @@ Thumbs.db
 
 # Docker files
 Dockerfile
+dockerfile
 docker-compose.yml
 
 # Tests, coverage
@@ -56,11 +57,8 @@ node_modules/
 *.log
 logs/
 
-# Any local large model directory you use
-D:\dev\AI\Voices/
-
-# Optional: lock down local Windows path expansions
-# Exclude absolute paths that shouldn't be sent to Docker context
+# NOTE: .dockerignore patterns must be repository-relative (no absolute Windows paths).
+# Absolute paths like `D:\...` can break some Docker/BuildKit versions during COPY.
 
 # Keep repo metadata
 !.github/

@@ -11,16 +11,41 @@ from dotenv import load_dotenv
 import http.client
 import json
 import ssl
+from pathlib import Path
 
 websocket_router = APIRouter()
 
+load_dotenv()
 
-voice = PiperVoice.load(r"voices\en_US-hfc_female-medium\en_US-hfc_female-medium.onnx")
+openAI_api_key = os.getenv("OPENAI_API_KEY")
+host = os.getenv("SERVER_HOST")
+port = os.getenv("SERVER_PORT")
 
+_voice: PiperVoice | None = None
+
+
+def _get_voice() -> PiperVoice:
+    global _voice
+    if _voice is not None:
+        return _voice
+
+    # Resolve repository root (/app in the container) from this file's location.
+    repo_root = Path(__file__).resolve().parents[2]
+    voice_path = (
+        repo_root
+        / "voices"
+        / "en_US-hfc_female-medium"
+        / "en_US-hfc_female-medium.onnx"
+    )
+    if not voice_path.exists():
+        raise FileNotFoundError(f"Voice model not found: {voice_path}")
+
+    _voice = PiperVoice.load(str(voice_path))
+    return _voice
 
 def get_conversation_context(conversation_id: str) -> str:
     conn = http.client.HTTPSConnection(
-        "localhost", 7185, context=ssl._create_unverified_context()
+        host, int(port), context=ssl._create_unverified_context()
     )
     conn.request("GET", f"/api/ai/conversations/{conversation_id}")
     response = conn.getresponse()
@@ -33,7 +58,7 @@ def get_conversation_context(conversation_id: str) -> str:
 
 def save_assistant_conversation_message(conversation_id: str, message: str):
     conn = http.client.HTTPSConnection(
-        "localhost", 7185, context=ssl._create_unverified_context()
+        host, int(port), context=ssl._create_unverified_context()
     )
     headers = {"Content-Type": "application/json"}
     payload = json.dumps({"isUserMessage": False, "message": message})
@@ -64,7 +89,7 @@ async def voicechat_endpoint(websocket: WebSocket, conversation_id: str):
                 )
                 return
 
-            client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+            client = OpenAI(api_key=openAI_api_key)
 
             response = client.chat.completions.create(
                 model="gpt-4.1",
@@ -79,7 +104,7 @@ async def voicechat_endpoint(websocket: WebSocket, conversation_id: str):
 
             save_assistant_conversation_message(conversation_id, output_text)
 
-            tts_gen = voice.synthesize(output_text)
+            tts_gen = _get_voice().synthesize(output_text)
 
             await websocket.send_text(output_text)
 
